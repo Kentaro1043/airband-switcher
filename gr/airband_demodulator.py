@@ -36,6 +36,7 @@ class airband_demodulator(gr.top_block):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 2.4e6
+        self.output_path = output_path = "/tmp/gnuradio_audio.pcm"
         self.freq = freq = 128.8e6
 
         ##################################################
@@ -73,7 +74,7 @@ class airband_demodulator(gr.top_block):
                 6.76))
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_ff(32767.0)
         self.blocks_float_to_short_0 = blocks.float_to_short(1, 1)
-        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_short*1, './tmp/audio.pcm', True)
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_short*1, output_path, True)
         self.blocks_file_sink_0.set_unbuffered(True)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
 
@@ -96,6 +97,13 @@ class airband_demodulator(gr.top_block):
         self.samp_rate = samp_rate
         self.low_pass_filter_0_0.set_taps(firdes.low_pass(1, self.samp_rate, 10e3, 5e3, window.WIN_HAMMING, 6.76))
         self.osmosdr_source_0.set_sample_rate(self.samp_rate)
+
+    def get_output_path(self):
+        return self.output_path
+
+    def set_output_path(self, output_path):
+        self.output_path = output_path
+        self.blocks_file_sink_0.open(self.output_path)
 
     def get_freq(self):
         return self.freq

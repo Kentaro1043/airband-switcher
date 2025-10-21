@@ -45,6 +45,18 @@ blocks:
     coordinate: [224, 24.0]
     rotation: 0
     state: enabled
+- name: output_path
+  id: variable
+  parameters:
+    comment: ''
+    value: '"/tmp/gnuradio_audio.pcm"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [344, 40.0]
+    rotation: 0
+    state: enabled
 - name: samp_rate
   id: variable
   parameters:
@@ -80,7 +92,7 @@ blocks:
     alias: ''
     append: 'True'
     comment: ''
-    file: ./tmp/audio.pcm
+    file: output_path
     type: short
     unbuffered: 'True'
     vlen: '1'
