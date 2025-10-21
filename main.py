@@ -7,7 +7,6 @@ import tempfile
 
 from gr.airband_demodulator import airband_demodulator
 
-# 一時ディレクトリを作成
 temp_dir = tempfile.TemporaryDirectory()
 atexit.register(temp_dir.cleanup)
 print(f"Using temporary directory: {temp_dir.name}")
@@ -15,29 +14,9 @@ print(f"Using temporary directory: {temp_dir.name}")
 os.mkfifo(os.path.join(temp_dir.name, "audio.pcm"))
 os.makedirs(os.path.join(temp_dir.name, "streaming"), exist_ok=True)
 
-# 復調モジュール
-demodulator = airband_demodulator()
-demodulator.set_output_path(os.path.join(temp_dir.name, "audio.pcm"))
-
-
-# シグナルハンドラ
-def sig_handler(sig, frame):
-    # stop demodulator
-    try:
-        demodulator.stop()
-        demodulator.wait()
-    except Exception:
-        pass
-    sys.exit(0)
-
-
-# シグナルハンドラを登録
-signal.signal(signal.SIGINT, sig_handler)
-signal.signal(signal.SIGTERM, sig_handler)
-
 
 def main():
-    # ffmpegコマンドを構築
+    # Start ffmpeg in background to convert ./tmp/audio.pcm to HLS segments
     ffmpeg_cmd = [
         "ffmpeg",
         "-f",
@@ -70,7 +49,6 @@ def main():
         os.path.join(temp_dir.name, "streaming", "playlist.m3u8"),
     ]
 
-    # ffmpegプロセスを開始
     try:
         ffmpeg_proc = subprocess.Popen(
             ffmpeg_cmd,
@@ -84,12 +62,38 @@ def main():
         )
         ffmpeg_proc = None
 
-    # 復調モジュールを開始
+    demodulator = airband_demodulator()
+
+    demodulator.set_output_path(os.path.join(temp_dir.name, "audio.pcm"))
+
+    def sig_handler(sig, frame):
+        # stop demodulator
+        try:
+            demodulator.stop()
+            demodulator.wait()
+        except Exception:
+            pass
+
+        # terminate ffmpeg if running
+        if ffmpeg_proc and ffmpeg_proc.poll() is None:
+            try:
+                ffmpeg_proc.terminate()
+                ffmpeg_proc.wait(timeout=5)
+            except Exception:
+                try:
+                    ffmpeg_proc.kill()
+                except Exception:
+                    pass
+
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, sig_handler)
+    signal.signal(signal.SIGTERM, sig_handler)
+
     demodulator.start()
     demodulator.flowgraph_started.set()
     demodulator.wait()
 
-    # ffmpegプロセスを終了
     if ffmpeg_proc and ffmpeg_proc.poll() is None:
         try:
             ffmpeg_proc.terminate()
