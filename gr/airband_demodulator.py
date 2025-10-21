@@ -71,21 +71,19 @@ class airband_demodulator(gr.top_block):
                 5e3,
                 window.WIN_HAMMING,
                 6.76))
-        self.blocks_wavfile_sink_0 = blocks.wavfile_sink(
-            './tmp/audio.wav',
-            1,
-            48000,
-            blocks.FORMAT_WAV,
-            blocks.FORMAT_PCM_16,
-            True
-            )
+        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_ff(32767.0)
+        self.blocks_float_to_short_0 = blocks.float_to_short(1, 1)
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_short*1, './tmp/audio.pcm', True)
+        self.blocks_file_sink_0.set_unbuffered(True)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
 
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_wavfile_sink_0, 0))
+        self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_multiply_const_vxx_0, 0))
+        self.connect((self.blocks_float_to_short_0, 0), (self.blocks_file_sink_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_float_to_short_0, 0))
         self.connect((self.low_pass_filter_0_0, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.osmosdr_source_0, 0), (self.low_pass_filter_0_0, 0))
         self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_complex_to_mag_0, 0))
