@@ -6,7 +6,7 @@ import sys
 import tempfile
 import threading
 
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, jsonify, render_template, request, send_from_directory
 
 from gr.airband_demodulator import airband_demodulator
 
@@ -20,6 +20,10 @@ os.makedirs(os.path.join(temp_dir.name, "streaming"), exist_ok=True)
 
 # Flaskセットアップ
 app = Flask(__name__)
+
+# グローバルでデモデュレータ参照とロックを保持（main()内で初期化）
+demodulator = None
+demodulator_lock = threading.Lock()
 
 
 @app.route("/")
@@ -51,6 +55,30 @@ def streaming_file(filename):
     return response
 
 
+@app.route("/api/freq", methods=["POST"])
+def api_set_freq():
+    """
+    JSON body expected: {"freq_hz": 128800000}
+    """
+    data = request.get_json(silent=True)
+    if not data or "freq_hz" not in data:
+        return jsonify({"error": "missing freq_hz"}), 400
+    try:
+        freq_hz = float(data["freq_hz"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid freq_hz"}), 400
+
+    with demodulator_lock:
+        if demodulator is None:
+            return jsonify({"error": "demodulator not ready"}), 503
+        try:
+            demodulator.set_freq(freq_hz)
+        except Exception as e:
+            return jsonify({"error": "failed to set frequency", "details": str(e)}), 500
+
+    return jsonify({"status": "ok", "freq_hz": freq_hz}), 200
+
+
 def main():
     # Start ffmpeg in background to convert ./tmp/audio.pcm to HLS segments
     ffmpeg_cmd = [
@@ -75,9 +103,9 @@ def main():
         "-f",
         "hls",
         "-hls_time",
-        "6",
+        "1",
         "-hls_list_size",
-        "6",
+        "3",
         "-hls_flags",
         "delete_segments+append_list",
         "-hls_segment_filename",
@@ -98,6 +126,7 @@ def main():
         )
         ffmpeg_proc = None
 
+    global demodulator
     demodulator = airband_demodulator()
 
     demodulator.set_output_path(os.path.join(temp_dir.name, "audio.pcm"))
@@ -132,7 +161,7 @@ def main():
     # Run Flask in a background thread so demodulator.wait() doesn't block server startup.
     flask_thread = threading.Thread(
         target=app.run,
-        kwargs={"debug": False, "use_reloader": False, "host": "0.0.0.0", "port": 8080},
+        kwargs={"debug": True, "use_reloader": False, "host": "0.0.0.0", "port": 8080},
         daemon=True,
     )
     flask_thread.start()
