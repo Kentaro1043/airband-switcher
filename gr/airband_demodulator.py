@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0
 #
 # GNU Radio Python Flow Graph
-# Title: Airband Radio Demodulatior
+# Title: Airband Radio Demodulator
 # Author: Kentaro1043
 # GNU Radio version: 3.10.12.0
 
@@ -26,10 +26,10 @@ import threading
 
 
 
-class airband_demodulatior(gr.top_block):
+class airband_demodulator(gr.top_block):
 
     def __init__(self):
-        gr.top_block.__init__(self, "Airband Radio Demodulatior", catch_exceptions=True)
+        gr.top_block.__init__(self, "Airband Radio Demodulator", catch_exceptions=True)
         self.flowgraph_started = threading.Event()
 
         ##################################################
@@ -77,7 +77,7 @@ class airband_demodulatior(gr.top_block):
             48000,
             blocks.FORMAT_WAV,
             blocks.FORMAT_PCM_16,
-            False
+            True
             )
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
 
@@ -109,7 +109,7 @@ class airband_demodulatior(gr.top_block):
 
 
 
-def main(top_block_cls=airband_demodulatior, options=None):
+def main(top_block_cls=airband_demodulator, options=None):
     tb = top_block_cls()
 
     def sig_handler(sig=None, frame=None):

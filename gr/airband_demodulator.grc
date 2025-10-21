@@ -11,7 +11,7 @@ options:
     gen_linking: dynamic
     generate_options: no_gui
     hier_block_src_path: '.:'
-    id: airband_demodulatior
+    id: airband_demodulator
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -78,7 +78,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    append: 'False'
+    append: 'True'
     bits_per_sample1: FORMAT_PCM_16
     bits_per_sample2: FORMAT_PCM_16
     bits_per_sample3: FORMAT_VORBIS
