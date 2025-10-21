@@ -6,10 +6,11 @@ import sys
 import tempfile
 import threading
 
-from flask import Flask, send_from_directory
+from flask import Flask, render_template, send_from_directory
 
 from gr.airband_demodulator import airband_demodulator
 
+# 一時ディレクトリ作成
 temp_dir = tempfile.TemporaryDirectory()
 atexit.register(temp_dir.cleanup)
 print(f"Using temporary directory: {temp_dir.name}")
@@ -17,8 +18,13 @@ print(f"Using temporary directory: {temp_dir.name}")
 os.mkfifo(os.path.join(temp_dir.name, "audio.pcm"))
 os.makedirs(os.path.join(temp_dir.name, "streaming"), exist_ok=True)
 
-
+# Flaskセットアップ
 app = Flask(__name__)
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 
 @app.route("/streaming/<path:filename>")

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title></title>
+  </head>
+  <body>
+    <audio id="audio" controls></audio>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+      const audio = document.getElementById("audio");
+      const url = "http://localhost:8080/streaming/playlist.m3u8";
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(audio);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          audio.play();
+        });
+      } else if (audio.canPlayType("application/vnd.apple.mpegurl")) {
+        audio.src = url;
+      } else {
+        document.body.insertAdjacentHTML(
+          "beforeend",
+          "<p>お使いのブラウザはネイティブHLSをサポートしていません。Safariまたはhls.jsを使用してください。</p>"
+        );
+      }
+    </script>
+  </body>
+</html>
