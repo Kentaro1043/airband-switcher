@@ -4,6 +4,9 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
+
+from flask import Flask, send_from_directory
 
 from gr.airband_demodulator import airband_demodulator
 
@@ -13,6 +16,33 @@ print(f"Using temporary directory: {temp_dir.name}")
 
 os.mkfifo(os.path.join(temp_dir.name, "audio.pcm"))
 os.makedirs(os.path.join(temp_dir.name, "streaming"), exist_ok=True)
+
+
+app = Flask(__name__)
+
+
+@app.route("/streaming/<path:filename>")
+def streaming_file(filename):
+    ext = os.path.splitext(filename)[1].lower()
+    if ext == ".m3u8":
+        mime_type = "application/vnd.apple.mpegurl"
+    elif ext == ".ts":
+        mime_type = "video/mp2t"
+    else:
+        mime_type = None
+
+    response = send_from_directory(
+        os.path.join(temp_dir.name, "streaming"),
+        filename,
+        mimetype=mime_type,
+        as_attachment=False,
+        conditional=True,
+    )
+    response.headers.setdefault("Content-Disposition", f'inline; filename="{filename}"')
+    response.headers.setdefault("Accept-Ranges", "bytes")
+    if ext == ".m3u8":
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 def main():
@@ -92,6 +122,16 @@ def main():
 
     demodulator.start()
     demodulator.flowgraph_started.set()
+
+    # Run Flask in a background thread so demodulator.wait() doesn't block server startup.
+    flask_thread = threading.Thread(
+        target=app.run,
+        kwargs={"debug": False, "use_reloader": False, "host": "0.0.0.0", "port": 8080},
+        daemon=True,
+    )
+    flask_thread.start()
+
+    # Wait for demodulator to finish (main thread remains responsive to signals)
     demodulator.wait()
 
     if ffmpeg_proc and ffmpeg_proc.poll() is None:
