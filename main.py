@@ -7,6 +7,7 @@ import tempfile
 import threading
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask_cors import CORS
 
 from gr.airband_demodulator import airband_demodulator
 
@@ -20,6 +21,7 @@ os.makedirs(os.path.join(temp_dir.name, "streaming"), exist_ok=True)
 
 # Flaskセットアップ
 app = Flask(__name__)
+cors = CORS(app, resources={r"/streaming/*": {"origins": "*"}})
 
 # グローバルでデモデュレータ参照とロックを保持（main()内で初期化）
 demodulator = None
@@ -161,7 +163,7 @@ def main():
     # Run Flask in a background thread so demodulator.wait() doesn't block server startup.
     flask_thread = threading.Thread(
         target=app.run,
-        kwargs={"debug": True, "use_reloader": False, "host": "0.0.0.0", "port": 8080},
+        kwargs={"debug": True, "use_reloader": False, "host": "0.0.0.0", "port": 8000},
         daemon=True,
     )
     flask_thread.start()
